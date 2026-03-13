@@ -1,0 +1,32 @@
+name: agentforge-ci-cd
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm run test
+      - run: npm run lint
+      - run: npm run typecheck
+      - name: Build containers
+        run: |
+          docker build -f infra/docker/Dockerfile.api -t agentforge-api .
+          docker build -f infra/docker/Dockerfile.worker -t agentforge-worker .
+          docker build -f infra/docker/Dockerfile.frontend -t agentforge-frontend .
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: test-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to cloud
+        run: echo "Hook kubectl/helm deployment here"
